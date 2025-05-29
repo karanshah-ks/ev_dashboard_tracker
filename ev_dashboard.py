@@ -6,7 +6,7 @@ import os
 import requests
 
 DB_PATH = "ev_charging.db"
-SLACK_WEBHOOK_URL = "https://hooks.slack.com/services/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"
+SLACK_WEBHOOK_URL = st.secrets["slack"]["webhook_url"]
 
 # --- Inject Dark Theme with Amazon Colors and Logo ---
 st.markdown("""
