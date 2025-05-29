@@ -55,8 +55,8 @@ st.markdown("""
         <div>
             <h1 style="color:#ff9900;">AUS20 EV Charging Tracker</h1>
             <p style="color:#f0f2f6; font-size: 14px;">
-                📬 Please reach out to <strong><a href='https://amazon.slack.com/team/karvsha' target='_blank'>@karvsha</a></strong> on Slack for any issues or feedback.<br>
-                📝 <a href='https://quip-amazon.com/xyz-feedback-form' target='_blank'>Submit feedback here</a>
+                📬 Please reach out to <strong><a href='https://phonetool.amazon.com/users/karvsha' target='_blank'>@karvsha</a></strong> on Slack for any issues or feedback.<br>
+                📝 <a href='https://quip-amazon.com/b2JDAqjgetNY/Feedback-for-EV-tracker#temp:C:aYc4e99e292fea84dd99d9a13d8f' target='_blank'>Submit feedback here</a>
             </p>
         </div>
     </div>
