@@ -55,8 +55,8 @@ st.markdown("""
         <div>
             <h1 style="color:#ff9900;">AUS20 EV Charging Tracker</h1>
             <p style="color:#f0f2f6; font-size: 14px;">
-                📬 Please reach out to <strong><a href='https://phonetool.amazon.com/users/karvsha' target='_blank'>@karvsha</a></strong> on Slack for any issues or feedback.<br>
-                📝 <a href='https://quip-amazon.com/b2JDAqjgetNY/Feedback-for-EV-tracker#temp:C:aYc4e99e292fea84dd99d9a13d8f' target='_blank'>Submit feedback here</a>
+                📬 Please reach out to <strong><a href='https://amazon.slack.com/team/karvsha' target='_blank'>@karvsha</a></strong> on Slack for any issues or feedback.<br>
+                📝 <a href='https://quip-amazon.com/xyz-feedback-form' target='_blank'>Submit feedback here</a>
             </p>
         </div>
     </div>
@@ -120,7 +120,7 @@ def init_db():
     conn.close()
 
 # --- RESET AT 8PM CST ---
-def auto_reset():
+def auto_reset(force=False):
     conn = get_conn()
     c = conn.cursor()
     now = datetime.datetime.now(TZ)
@@ -129,16 +129,18 @@ def auto_reset():
     c.execute("SELECT value FROM metadata WHERE key='last_reset'")
     row = c.fetchone()
 
-    if not row or row[0] < current_date:
-        if now.hour >= 20:
-            archived_on = now.isoformat()
-            c.execute("INSERT INTO archive_charging SELECT *, ? FROM charging", (archived_on,))
-            c.execute("INSERT INTO archive_waitlist SELECT *, ? FROM waitlist", (archived_on,))
-            c.execute("DELETE FROM charging")
-            c.execute("DELETE FROM waitlist")
-            c.execute("DELETE FROM reservations")
-            c.execute("REPLACE INTO metadata (key, value) VALUES ('last_reset', ?)", (current_date,))
-            conn.commit()
+    should_reset = force or (not row or row[0] < current_date and now.hour >= 20)
+
+    if should_reset:
+        archived_on = now.isoformat()
+        c.execute("INSERT INTO archive_charging SELECT *, ? FROM charging", (archived_on,))
+        c.execute("INSERT INTO archive_waitlist SELECT *, ? FROM waitlist", (archived_on,))
+        c.execute("DELETE FROM charging")
+        c.execute("DELETE FROM waitlist")
+        c.execute("DELETE FROM reservations")
+        c.execute("REPLACE INTO metadata (key, value) VALUES ('last_reset', ?)", (current_date,))
+        conn.commit()
+
     conn.close()
 
 # --- INITIALIZE ---
@@ -269,10 +271,28 @@ data = c.fetchall()
 df = pd.DataFrame(data, columns=["Alias", "Car", "Battery %", "Station", "Start Time", "PIN"])
 if not df.empty:
     df["Start Time"] = pd.to_datetime(df["Start Time"])
+
+    # Handle tz-aware vs tz-naive safely
+    if df["Start Time"].dt.tz is None:
+        df["Start Time"] = df["Start Time"].dt.tz_localize("UTC").dt.tz_convert(TZ)
+    else:
+        df["Start Time"] = df["Start Time"].dt.tz_convert(TZ)
+
+    now = pd.Timestamp.now(tz=TZ)
     df["Time Elapsed (min)"] = (now - df["Start Time"]).dt.total_seconds() // 60
     df["Overstayed"] = df["Time Elapsed (min)"] > 120
     st.dataframe(df[["Alias", "Car", "Battery %", "Station", "Start Time", "Time Elapsed (min)", "Overstayed"]])
 else:
     st.info("No cars charging.")
+
+# --- ADMIN RESET CONTROL ---
+st.markdown("## 🔐 Admin Controls")
+admin_alias = st.text_input("Enter your alias to unlock admin controls:")
+
+if admin_alias.strip().lower() == "evchargingkaran":
+    if st.button("🔁 Admin: Reset Charging & Waitlist"):
+        auto_reset(force=True)
+        st.success("Reset executed successfully.")
+
 
 conn.close()
